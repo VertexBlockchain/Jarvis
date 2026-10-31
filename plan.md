@@ -29,6 +29,12 @@ Construir a primeira versão navegável de uma assistente pessoal avançada, com
 - Sincronização entre dispositivos e memória na nuvem.
 - STT nativo completo e palavra-chave permanente.
 
+## Evolução já adicionada após o primeiro checkpoint
+
+Comandos explícitos de baixa consequência agora são resolvidos no aparelho antes de chamar o LLM: guardar uma memória, criar uma tarefa, registrar um “me lembre de…” ou consultar as pendências do dia. Isso reduz latência, evita enviar comandos simples para a nuvem e torna a assistente realmente capaz de agir dentro do seu espaço local.
+
+A tela de tarefas também oferece um lembrete de 30 minutos usando `expo-notifications`. O app solicita a permissão no Android/iOS e informa na Web Preview que o recurso depende do aparelho. Calendário com horário exato, transcrição nativa e bolha flutuante permanecem como as próximas integrações de sistema.
+
 ## Arquitetura
 
 ### Frontend mobile

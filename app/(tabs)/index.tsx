@@ -7,6 +7,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { JarvisOrb, type OrbMode } from "@/components/jarvis-orb";
 import { useJarvisStore } from "@/hooks/use-jarvis-store";
 import { askJarvis, speakJarvis } from "@/lib/jarvis-api";
+import { parseLocalCommand } from "@/lib/jarvis-commands";
 
 const colors = {
   ink: "#07111F",
@@ -25,7 +26,7 @@ function formatTime(value: string) {
 }
 
 export default function HomeScreen() {
-  const { messages, memories, tasks, preferences, addMessage, hydrated } = useJarvisStore();
+  const { messages, memories, tasks, preferences, addMessage, addMemory, addTask, hydrated } = useJarvisStore();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<OrbMode>("idle");
   const [isSending, setIsSending] = useState(false);
@@ -47,6 +48,28 @@ export default function HomeScreen() {
     const userMessage = addMessage("user", text);
     setIsSending(true);
     setMode("thinking");
+
+    const localCommand = parseLocalCommand(text);
+    if (localCommand) {
+      let localReply = "";
+      if (localCommand.kind === "memory") {
+        addMemory(localCommand.text, localCommand.category);
+        localReply = `Guardei isso na sua memória local: “${localCommand.text}”`;
+      } else if (localCommand.kind === "task") {
+        addTask(localCommand.title, localCommand.dueLabel);
+        localReply = `Anotei como próximo passo${localCommand.dueLabel ? ` para ${localCommand.dueLabel}` : ""}: “${localCommand.title}”`;
+      } else {
+        const openTasks = tasks.filter((task) => !task.completed);
+        localReply = openTasks.length
+          ? `Você tem ${openTasks.length} pendência${openTasks.length === 1 ? "" : "s"}: ${openTasks.map((task) => task.title).join("; ")}.`
+          : "Seu dia está limpo por enquanto. Quer escolher um próximo passo?";
+      }
+      addMessage("assistant", localReply);
+      setIsSending(false);
+      setMode(preferences.voiceEnabled ? "speaking" : "idle");
+      if (preferences.voiceEnabled) speakJarvis(localReply);
+      return;
+    }
 
     const response = await askJarvis({
       messages: [...messages, userMessage],

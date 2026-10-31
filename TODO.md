@@ -35,3 +35,12 @@
 - [x] A interface deve explicar que bolha flutuante, leitura de notificações, calendário e automações profundas não fazem parte desta primeira entrega.
 - [x] O visual deve seguir o estilo Luxury command center: azul-noite, ciano de ação, violeta para inteligência, cards em camadas e esfera com halo.
 - [x] Os assets nativos `icon.png`, `splash-icon.png`, `favicon.png`, `android-icon-foreground.png`, `android-icon-background.png` e `android-icon-monochrome.png` devem carregar a mesma identidade visual, sem cantos arredondados embutidos no ícone principal.
+
+## 6. Segunda camada: agir localmente com segurança
+
+- [x] Frases explícitas como “guarde na memória que…”, “crie uma tarefa…” e “me lembre de…” devem ser resolvidas localmente, sem enviar esse comando ao servidor LLM.
+- [x] A frase “o que tenho para hoje?” deve consultar as tarefas abertas locais e responder com um resumo.
+- [x] Cada tarefa deve oferecer o agendamento opcional de um lembrete local para 30 minutos depois, solicitando a permissão de notificações no Android/iOS e explicando a limitação na Preview Web.
+- [x] Os comandos locais devem possuir testes unitários para memória, tarefa com prazo, consulta de pendências e rejeição de conversa comum.
+- [ ] A captura de voz nativa deve transformar fala em texto usando o microfone e o serviço de transcrição, com tratamento de permissão e erro.
+- [ ] O Android deve receber a bolha flutuante e o calendário nativo após a confirmação das permissões do sistema.
