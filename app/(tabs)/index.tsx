@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
+import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder, useAudioRecorderState } from "expo-audio";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { JarvisOrb, type OrbMode } from "@/components/jarvis-orb";
 import { useJarvisStore } from "@/hooks/use-jarvis-store";
-import { askJarvis, speakJarvis } from "@/lib/jarvis-api";
+import { askJarvis, speakJarvis, transcribeJarvisAudio } from "@/lib/jarvis-api";
 import { parseLocalCommand } from "@/lib/jarvis-commands";
 
 const colors = {
@@ -30,7 +31,12 @@ export default function HomeScreen() {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<OrbMode>("idle");
   const [isSending, setIsSending] = useState(false);
+  const [recordingIntent, setRecordingIntent] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("");
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(recorder, 200);
   const scrollRef = useRef<ScrollView>(null);
+  const isRecording = recordingIntent || recorderState.isRecording;
 
   const pendingTasks = useMemo(() => tasks.filter((task) => !task.completed), [tasks]);
   const recentMessages = useMemo(() => messages.slice(-8), [messages]);
@@ -41,9 +47,9 @@ export default function HomeScreen() {
     return () => clearTimeout(timeout);
   }, [messages.length]);
 
-  const submit = async (value = input) => {
+  const submit = async (value = input, allowWhileBusy = false) => {
     const text = value.trim();
-    if (!text || isSending) return;
+    if (!text || (isSending && !allowWhileBusy)) return;
     setInput("");
     const userMessage = addMessage("user", text);
     setIsSending(true);
@@ -81,6 +87,53 @@ export default function HomeScreen() {
     setIsSending(false);
     setMode(response.fallback ? "idle" : preferences.voiceEnabled ? "speaking" : "idle");
     if (preferences.voiceEnabled) speakJarvis(response.text);
+  };
+
+  const toggleVoice = async () => {
+    if (isSending && !isRecording) return;
+    if (isRecording) {
+      setVoiceStatus("transcrevendo…");
+      try {
+        await recorder.stop();
+        setRecordingIntent(false);
+        if (!recorder.uri) {
+          setVoiceStatus("Não encontrei um áudio válido. Tente novamente.");
+          return;
+        }
+        setIsSending(true);
+        const transcription = await transcribeJarvisAudio(recorder.uri);
+        if (transcription.fallback || !transcription.text.trim()) {
+          addMessage("assistant", transcription.text || "Não consegui entender o áudio. Você pode repetir ou escrever a mensagem.", true);
+          setIsSending(false);
+          setMode("idle");
+          setVoiceStatus("");
+          return;
+        }
+        setVoiceStatus("");
+        await submit(transcription.text, true);
+      } catch {
+        setRecordingIntent(false);
+        setIsSending(false);
+        setMode("idle");
+        setVoiceStatus("Não consegui processar o áudio. Verifique a permissão do microfone.");
+      }
+      return;
+    }
+
+    const permission = await requestRecordingPermissionsAsync();
+    if (!permission.granted) {
+      setVoiceStatus("Permita o microfone para conversar por voz.");
+      return;
+    }
+    try {
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      setRecordingIntent(true);
+      setVoiceStatus("ouvindo… toque para parar");
+      setMode("listening");
+    } catch {
+      setVoiceStatus("Não consegui iniciar o microfone neste aparelho.");
+    }
   };
 
   const replayLast = () => {
@@ -184,6 +237,9 @@ export default function HomeScreen() {
               editable={!isSending}
               returnKeyType="send"
             />
+            <Pressable onPress={toggleVoice} style={[styles.iconButton, isRecording && styles.recordingButton]} accessibilityLabel={isRecording ? "Parar gravação" : "Falar com Jarvis"}>
+              <MaterialIcons name={isRecording ? "stop" : "mic-none"} size={21} color={isRecording ? colors.ink : colors.muted} />
+            </Pressable>
             <Pressable onPress={replayLast} style={styles.iconButton} accessibilityLabel="Ouvir última resposta">
               <MaterialIcons name="volume-up" size={21} color={colors.muted} />
             </Pressable>
@@ -191,7 +247,7 @@ export default function HomeScreen() {
               <MaterialIcons name="arrow-upward" size={21} color={colors.ink} />
             </Pressable>
           </View>
-          <Text style={styles.composerNote}>Ações sensíveis sempre pedem sua confirmação.</Text>
+          <Text style={styles.composerNote}>{voiceStatus || "Ações sensíveis sempre pedem sua confirmação."}</Text>
         </View>
       </KeyboardAvoidingView>
     </ScreenContainer>
@@ -240,6 +296,7 @@ const styles = StyleSheet.create({
   composer: { flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 7, borderRadius: 18, backgroundColor: colors.panel, borderWidth: 1, borderColor: "rgba(120,243,229,0.2)" },
   input: { flex: 1, minHeight: 42, maxHeight: 92, color: colors.text, fontSize: 14, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 8 },
   iconButton: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
+  recordingButton: { borderRadius: 12, backgroundColor: colors.cyan },
   sendButton: { width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: colors.cyan },
   sendButtonDisabled: { opacity: 0.35 },
   composerNote: { color: "#5E7896", fontSize: 10, textAlign: "center", marginTop: 7 },

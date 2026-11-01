@@ -44,3 +44,11 @@
 - [x] Os comandos locais devem possuir testes unitários para memória, tarefa com prazo, consulta de pendências e rejeição de conversa comum.
 - [ ] A captura de voz nativa deve transformar fala em texto usando o microfone e o serviço de transcrição, com tratamento de permissão e erro.
 - [ ] O Android deve receber a bolha flutuante e o calendário nativo após a confirmação das permissões do sistema.
+
+## 7. Voz com privacidade por padrão
+
+- [x] O cockpit deve exibir um botão de microfone com estados de ouvir, parar e transcrever, além de tratar permissão negada e gravação vazia sem travar a conversa.
+- [x] O app deve enviar somente o áudio da gravação atual para `POST /api/jarvis/transcribe`; a chave do serviço de transcrição permanece exclusivamente no backend.
+- [x] O servidor deve limitar o áudio bruto a 12 MB, adaptar o arquivo ao endpoint Whisper compatível, pedir transcrição em português do Brasil e retornar texto ou fallback explícito.
+- [x] A gravação deve continuar integrada ao fluxo atual: o texto transcrito aparece como mensagem do usuário e segue para comandos locais ou conversa com o Jarvis.
+- [ ] Validar a captura real de microfone e a permissão de áudio em um Android/iOS conectado; a Preview Web valida apenas a interface e o bundle.

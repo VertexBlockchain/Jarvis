@@ -12,6 +12,11 @@ type ChatResponse = {
   fallback: boolean;
 };
 
+type TranscriptionResponse = {
+  text: string;
+  fallback: boolean;
+};
+
 const NETWORK_FALLBACK =
   "Estou sem conexão com meu núcleo agora. Sua mensagem ficou aqui; tente novamente em instantes e eu continuo de onde paramos.";
 
@@ -35,6 +40,25 @@ export async function askJarvis(input: ChatInput): Promise<ChatResponse> {
     return { text: data.text, fallback: data.fallback === true };
   } catch {
     return { text: NETWORK_FALLBACK, fallback: true };
+  }
+}
+
+export async function transcribeJarvisAudio(uri: string): Promise<TranscriptionResponse> {
+  try {
+    const audio = await fetch(uri).then((response) => response.blob());
+    if (!audio.size || audio.size > 12 * 1024 * 1024) {
+      return { text: "", fallback: true };
+    }
+    const response = await fetch(`${getApiBaseUrl()}/api/jarvis/transcribe`, {
+      method: "POST",
+      headers: { "Content-Type": audio.type || "audio/m4a" },
+      body: audio,
+    });
+    const data = (await response.json().catch(() => null)) as { text?: unknown; fallback?: unknown } | null;
+    if (!response.ok || typeof data?.text !== "string") return { text: "", fallback: true };
+    return { text: data.text, fallback: data.fallback === true };
+  } catch {
+    return { text: "", fallback: true };
   }
 }
 

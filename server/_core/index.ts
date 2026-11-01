@@ -30,6 +30,7 @@ function cleanList(items: Array<Record<string, unknown>> | undefined, keys: stri
 }
 
 const jarvisFallback = "Meu núcleo de IA está temporariamente indisponível. Ainda posso ajudar com suas memórias e tarefas locais — tente enviar a mensagem novamente em instantes.";
+const transcriptionFallback = "Não consegui entender o áudio agora. Você pode tentar novamente ou escrever a mensagem.";
 
 async function handleJarvisChat(req: express.Request, res: express.Response) {
   const body = (req.body ?? {}) as JarvisChatBody;
@@ -74,6 +75,43 @@ async function handleJarvisChat(req: express.Request, res: express.Response) {
   }
 }
 
+async function handleJarvisTranscription(req: express.Request, res: express.Response) {
+  const audio = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+  const contentType = typeof req.headers["content-type"] === "string" ? req.headers["content-type"].split(";")[0] : "audio/m4a";
+
+  if (audio.length === 0 || audio.length > 12 * 1024 * 1024) {
+    res.status(400).json({ text: "", fallback: true, error: "audio_invalid_or_too_large" });
+    return;
+  }
+  if (!ENV.manusApiUrl || !ENV.manusApiKey) {
+    res.json({ text: "", fallback: true, error: "transcription_unavailable" });
+    return;
+  }
+
+  const extension = contentType.includes("webm") ? "webm" : contentType.includes("wav") ? "wav" : contentType.includes("ogg") ? "ogg" : "m4a";
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(audio)], { type: contentType }), `jarvis-recording.${extension}`);
+  form.append("model", "whisper-1");
+  form.append("response_format", "verbose_json");
+  form.append("prompt", "Transcreva em português do Brasil. Preserve nomes próprios e tarefas do usuário.");
+
+  try {
+    const upstream = await fetch(`${ENV.manusApiUrl.replace(/\/$/, "")}/v1/audio/transcriptions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${ENV.manusApiKey}` },
+      body: form,
+    });
+    const data = (await upstream.json().catch(() => null)) as { text?: unknown; error?: { message?: string } } | null;
+    if (!upstream.ok || typeof data?.text !== "string" || !data.text.trim()) {
+      res.json({ text: "", fallback: true, error: data?.error?.message ?? "transcription_failed" });
+      return;
+    }
+    res.json({ text: data.text.trim(), fallback: false });
+  } catch {
+    res.json({ text: transcriptionFallback, fallback: true, error: "transcription_network_error" });
+  }
+}
+
 async function startServer() {
   const app = express();
   const server = createServer(app);
@@ -92,6 +130,7 @@ async function startServer() {
   });
 
   app.post("/api/jarvis/chat", handleJarvisChat);
+  app.post("/api/jarvis/transcribe", express.raw({ type: ["audio/*", "application/octet-stream"], limit: "12mb" }), handleJarvisTranscription);
 
   app.use(
     "/api/trpc",

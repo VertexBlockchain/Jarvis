@@ -35,6 +35,10 @@ Comandos explícitos de baixa consequência agora são resolvidos no aparelho an
 
 A tela de tarefas também oferece um lembrete de 30 minutos usando `expo-notifications`. O app solicita a permissão no Android/iOS e informa na Web Preview que o recurso depende do aparelho. Calendário com horário exato, transcrição nativa e bolha flutuante permanecem como as próximas integrações de sistema.
 
+### Voz e transcrição
+
+O botão de microfone usa `expo-audio` para gravar no aparelho ou no navegador quando o ambiente oferece microfone. O cliente envia apenas o áudio atual, com limite de 12 MB, para o endpoint relativo `/api/jarvis/transcribe`. O servidor recebe o corpo bruto, cria o multipart exigido pelo endpoint Whisper compatível usando as credenciais de runtime e devolve somente a transcrição. Áudio vazio, permissão negada, formato inválido e indisponibilidade do serviço produzem mensagens recuperáveis; o histórico não é enviado junto com o áudio.
+
 ## Arquitetura
 
 ### Frontend mobile
