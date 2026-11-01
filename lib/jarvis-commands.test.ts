@@ -19,6 +19,16 @@ describe("parseLocalCommand", () => {
     });
   });
 
+  it("converte lembrete com horário em tarefa agendada", () => {
+    const command = parseLocalCommand("me lembre de tomar o remédio amanhã às 08:30");
+    expect(command?.kind).toBe("task");
+    expect(command).toMatchObject({
+      title: "tomar o remédio amanhã às 08:30",
+      dueLabel: "amanhã às 08:30",
+    });
+    expect(typeof (command?.kind === "task" ? command.dueAt : undefined)).toBe("string");
+  });
+
   it("consulta tarefas sem enviar a frase para a nuvem", () => {
     expect(parseLocalCommand("o que tenho para hoje?")).toEqual({ kind: "list-tasks" });
   });

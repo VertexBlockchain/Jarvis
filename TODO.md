@@ -40,9 +40,9 @@
 
 - [x] Frases explícitas como “guarde na memória que…”, “crie uma tarefa…” e “me lembre de…” devem ser resolvidas localmente, sem enviar esse comando ao servidor LLM.
 - [x] A frase “o que tenho para hoje?” deve consultar as tarefas abertas locais e responder com um resumo.
-- [x] Cada tarefa deve oferecer o agendamento opcional de um lembrete local para 30 minutos depois, solicitando a permissão de notificações no Android/iOS e explicando a limitação na Preview Web.
+- [x] Cada tarefa deve oferecer o agendamento opcional de um lembrete local; por padrão são 30 minutos depois, e comandos com “hoje às HH:MM” ou “amanhã às HH:MM” usam o horário exato, solicitando a permissão de notificações no Android/iOS e explicando a limitação na Preview Web.
 - [x] Os comandos locais devem possuir testes unitários para memória, tarefa com prazo, consulta de pendências e rejeição de conversa comum.
-- [ ] A captura de voz nativa deve transformar fala em texto usando o microfone e o serviço de transcrição, com tratamento de permissão e erro.
+- [x] A captura de voz nativa deve transformar fala em texto usando o microfone e o serviço de transcrição, com tratamento de permissão e erro.
 - [ ] O Android deve receber a bolha flutuante e o calendário nativo após a confirmação das permissões do sistema.
 
 ## 7. Voz com privacidade por padrão
@@ -52,3 +52,11 @@
 - [x] O servidor deve limitar o áudio bruto a 12 MB, adaptar o arquivo ao endpoint Whisper compatível, pedir transcrição em português do Brasil e retornar texto ou fallback explícito.
 - [x] A gravação deve continuar integrada ao fluxo atual: o texto transcrito aparece como mensagem do usuário e segue para comandos locais ou conversa com o Jarvis.
 - [ ] Validar a captura real de microfone e a permissão de áudio em um Android/iOS conectado; a Preview Web valida apenas a interface e o bundle.
+
+## 8. Lembretes com horário
+
+- [x] O parser deve reconhecer “me lembre de [tarefa] hoje às 08:30” e “amanhã às 09:00”, preservando o rótulo humano e uma data ISO local para o agendamento.
+- [x] A tarefa deve persistir o horário opcional sem quebrar tarefas antigas que só possuem `dueLabel`.
+- [x] O agendador deve usar gatilho de data quando o horário ainda estiver no futuro e manter o fallback de 30 minutos para tarefas sem horário.
+- [x] A tela Tarefas deve informar se o lembrete foi agendado no horário exato ou no fallback de 30 minutos.
+- [ ] Calendário nativo deve reutilizar o mesmo `dueAt`, mas só criar eventos depois de uma confirmação explícita do usuário.

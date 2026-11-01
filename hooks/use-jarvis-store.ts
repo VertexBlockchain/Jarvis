@@ -24,6 +24,7 @@ export type JarvisTask = {
   id: string;
   title: string;
   dueLabel?: string;
+  dueAt?: string;
   completed: boolean;
   createdAt: string;
 };
@@ -125,11 +126,12 @@ export function useJarvisStore() {
     setState((current) => ({ ...current, memories: [] }));
   }, []);
 
-  const addTask = useCallback((title: string, dueLabel?: string) => {
+  const addTask = useCallback((title: string, dueLabel?: string, dueAt?: string) => {
     const task: JarvisTask = {
       id: createId("task"),
       title: title.trim(),
       dueLabel,
+      dueAt,
       completed: false,
       createdAt: new Date().toISOString(),
     };

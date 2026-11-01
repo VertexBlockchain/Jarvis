@@ -8,7 +8,7 @@ O MVP já entrega:
 
 - Cockpit visual com esfera de presença e conversa por texto.
 - Memória pessoal local, com categorias, edição por adição e limpeza controlada.
-- Tarefas locais com conclusão, remoção e lembrete opcional de 30 minutos.
+- Tarefas locais com conclusão, remoção e lembrete opcional; frases como “amanhã às 08:30” agendam o horário exato no aparelho.
 - Comandos locais: `guarde na memória que...`, `crie uma tarefa...`, `me lembre de...` e `o que tenho para hoje?`.
 - Voz com `expo-audio`: gravação, permissão, envio do áudio atual e transcrição no backend.
 - Respostas faladas no Web Preview quando `speechSynthesis` está disponível.
@@ -51,7 +51,7 @@ O MVP não lê automaticamente todas as mensagens, notificações ou outros apli
 ## Próximos passos
 
 1. Validar microfone e notificações em Android/iOS conectado.
-2. Calendário nativo com horário exato e confirmação antes de criar eventos.
+2. Calendário nativo reaproveitando horários exatos e pedindo confirmação antes de criar eventos.
 3. Confirmação visual para ações externas.
 4. Bolha flutuante Android e contexto filtrado de notificações.
 5. Sincronização opcional e criptografada entre dispositivos.

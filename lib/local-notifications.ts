@@ -16,7 +16,7 @@ export type ReminderResult =
   | { ok: true; id: string }
   | { ok: false; reason: "web" | "permission" | "unavailable" };
 
-export async function scheduleTaskReminder(title: string, minutes = 30): Promise<ReminderResult> {
+export async function scheduleTaskReminder(title: string, minutes = 30, dueAt?: string): Promise<ReminderResult> {
   if (Platform.OS === "web") return { ok: false, reason: "web" };
 
   try {
@@ -33,18 +33,18 @@ export async function scheduleTaskReminder(title: string, minutes = 30): Promise
       });
     }
 
+    const dueDate = dueAt ? new Date(dueAt) : null;
+    const trigger = dueDate && dueDate.getTime() > Date.now()
+      ? { type: Notifications.SchedulableTriggerInputTypes.DATE as const, date: dueDate, ...(Platform.OS === "android" ? { channelId: "jarvis-reminders" } : {}) }
+      : { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL as const, seconds: Math.max(60, minutes * 60), repeats: false, ...(Platform.OS === "android" ? { channelId: "jarvis-reminders" } : {}) };
+
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: "Jarvis · próximo passo",
         body: title,
         sound: "default",
       },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: Math.max(60, minutes * 60),
-        repeats: false,
-        ...(Platform.OS === "android" ? { channelId: "jarvis-reminders" } : {}),
-      },
+      trigger,
     });
     return { ok: true, id };
   } catch {

@@ -25,9 +25,11 @@ export default function TasksScreen() {
   };
 
   const remind = async (taskTitle: string) => {
-    const result = await scheduleTaskReminder(taskTitle);
+    const task = tasks.find((item) => item.title === taskTitle);
+    const result = await scheduleTaskReminder(taskTitle, 30, task?.dueAt);
+    const exactTime = task?.dueLabel ? ` para ${task.dueLabel}` : " para daqui a 30 minutos";
     const message = result.ok
-      ? "Lembrete agendado para daqui a 30 minutos."
+      ? `Lembrete agendado${exactTime}.`
       : result.reason === "web"
         ? "Lembretes nativos ficam disponíveis no app Android/iOS."
         : result.reason === "permission"
@@ -54,7 +56,7 @@ export default function TasksScreen() {
             <View key={task.id} style={[styles.taskCard, task.completed && styles.taskDone]}><Pressable onPress={() => toggleTask(task.id)} style={[styles.checkbox, task.completed && styles.checkboxDone]} accessibilityLabel={task.completed ? "Reabrir tarefa" : "Concluir tarefa"}>{task.completed && <MaterialIcons name="check" size={16} color={colors.ink} />}</Pressable><View style={styles.taskCopy}><Text style={[styles.taskTitle, task.completed && styles.taskTitleDone]}>{task.title}</Text><Text style={styles.taskMeta}>{task.completed ? "concluída agora" : task.dueLabel ?? "sem prazo · local"}</Text></View><Pressable onPress={() => remind(task.title)} accessibilityLabel="Agendar lembrete"><MaterialIcons name="notifications-none" size={20} color={colors.cyan} /></Pressable><Pressable onPress={() => deleteTask(task.id)} accessibilityLabel="Apagar tarefa"><MaterialIcons name="more-vert" size={20} color={colors.muted} /></Pressable></View>
           ))}
 
-          <View style={styles.footerNote}><MaterialIcons name="info-outline" size={16} color={colors.muted} /><Text style={styles.footerText}>As tarefas são locais. O botão de sino agenda um lembrete de 30 minutos no aparelho; calendário e horários exatos entram na próxima fase.</Text></View>
+          <View style={styles.footerNote}><MaterialIcons name="info-outline" size={16} color={colors.muted} /><Text style={styles.footerText}>As tarefas são locais. O botão de sino agenda um lembrete no aparelho; comandos com “hoje às 08:30” ou “amanhã às 09:00” usam o horário informado.</Text></View>
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenContainer>

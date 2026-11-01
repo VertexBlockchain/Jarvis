@@ -24,7 +24,7 @@ Construir a primeira versão navegável de uma assistente pessoal avançada, com
 
 - Bolha flutuante sobre outros aplicativos Android.
 - Leitura filtrada de notificações e contexto de apps.
-- Lembretes nativos, calendário e integrações externas.
+- Lembretes nativos com horário exato, calendário e integrações externas.
 - Rotinas autônomas, planejamento de múltiplas etapas e execução em serviços.
 - Sincronização entre dispositivos e memória na nuvem.
 - STT nativo completo e palavra-chave permanente.
@@ -33,7 +33,7 @@ Construir a primeira versão navegável de uma assistente pessoal avançada, com
 
 Comandos explícitos de baixa consequência agora são resolvidos no aparelho antes de chamar o LLM: guardar uma memória, criar uma tarefa, registrar um “me lembre de…” ou consultar as pendências do dia. Isso reduz latência, evita enviar comandos simples para a nuvem e torna a assistente realmente capaz de agir dentro do seu espaço local.
 
-A tela de tarefas também oferece um lembrete de 30 minutos usando `expo-notifications`. O app solicita a permissão no Android/iOS e informa na Web Preview que o recurso depende do aparelho. Calendário com horário exato, transcrição nativa e bolha flutuante permanecem como as próximas integrações de sistema.
+A tela de tarefas oferece um lembrete de 30 minutos usando `expo-notifications` e agora entende horários exatos em frases como “amanhã às 08:30”, usando um gatilho de data no aparelho. O app solicita a permissão no Android/iOS e informa na Web Preview que o recurso depende do aparelho. Calendário nativo com confirmação explícita e bolha flutuante permanecem como próximas integrações de sistema.
 
 ### Voz e transcrição
 

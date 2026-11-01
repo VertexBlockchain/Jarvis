@@ -62,8 +62,8 @@ export default function HomeScreen() {
         addMemory(localCommand.text, localCommand.category);
         localReply = `Guardei isso na sua memória local: “${localCommand.text}”`;
       } else if (localCommand.kind === "task") {
-        addTask(localCommand.title, localCommand.dueLabel);
-        localReply = `Anotei como próximo passo${localCommand.dueLabel ? ` para ${localCommand.dueLabel}` : ""}: “${localCommand.title}”`;
+        addTask(localCommand.title, localCommand.dueLabel, localCommand.dueAt);
+        localReply = `${localCommand.dueAt ? "Agendei seu lembrete" : "Anotei como próximo passo"}${localCommand.dueLabel ? ` para ${localCommand.dueLabel}` : ""}: “${localCommand.title}”`;
       } else {
         const openTasks = tasks.filter((task) => !task.completed);
         localReply = openTasks.length
