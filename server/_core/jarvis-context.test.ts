@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createFixedWindowRateLimiter, parseJarvisScreenshotAnalysis, validateJarvisScreenshot } from "./jarvis-context";
+import { createFixedWindowRateLimiter, hasPersonalCommitmentMarker, parseJarvisChatResponse, parseJarvisScreenshotAnalysis, validateJarvisScreenshot } from "./jarvis-context";
 
 const jpegBase64 = Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString("base64");
 
@@ -73,11 +73,48 @@ describe("parseJarvisScreenshotAnalysis", () => {
   it("rejeita prazos e horários dentro do título sugerido", () => {
     expect(parseJarvisScreenshotAnalysis('{"summary":"Nota","taskSuggestion":"Enviar até amanhã às 09:00"}').taskSuggestion).toBeNull();
     expect(parseJarvisScreenshotAnalysis('{"summary":"Nota","taskSuggestion":"Revisar documento em 15/11"}').taskSuggestion).toBeNull();
+    expect(parseJarvisScreenshotAnalysis('{"summary":"Nota","taskSuggestion":"Entregar em 15 de novembro"}').taskSuggestion).toBeNull();
+    expect(parseJarvisChatResponse('{"reply":"Certo.","taskSuggestion":"Revisar até 2026-11-02"}').taskSuggestion).toBeNull();
+    expect(parseJarvisChatResponse('{"reply":"Certo.","taskSuggestion":"Revisar no fim do mês"}').taskSuggestion).toBeNull();
+    expect(parseJarvisChatResponse('{"reply":"Certo.","taskSuggestion":"Enviar relatório na próxima quinzena"}').taskSuggestion).toBeNull();
+    expect(parseJarvisChatResponse('{"reply":"Certo.","taskSuggestion":"Enviar relatório até o próximo trimestre"}').taskSuggestion).toBeNull();
+    expect(parseJarvisChatResponse('{"reply":"Certo.","taskSuggestion":"Enviar até 15th of November"}').taskSuggestion).toBeNull();
   });
 
   it("normaliza quebras de linha e limita o título sugerido", () => {
     const result = parseJarvisScreenshotAnalysis(JSON.stringify({ summary: "Nota", taskSuggestion: `  Fazer\n${"x".repeat(200)}` }));
     expect(result.taskSuggestion).toHaveLength(160);
     expect(result.taskSuggestion).not.toContain("\n");
+  });
+});
+
+describe("parseJarvisChatResponse", () => {
+  it("separa a resposta do chat e uma proposta de compromisso válida", () => {
+    expect(parseJarvisChatResponse('{"reply":"Entendi. Posso ajudar com isso.","taskSuggestion":"Enviar o orçamento"}')).toEqual({
+      text: "Entendi. Posso ajudar com isso.",
+      taskSuggestion: "Enviar o orçamento",
+    });
+  });
+
+  it("mantém a resposta normal sem sugestão em schema inválido ou prazo", () => {
+    expect(parseJarvisChatResponse('{"reply":"Certo.","taskSuggestion":"Ligar amanhã"}').taskSuggestion).toBeNull();
+    expect(parseJarvisChatResponse('{"reply":"Certo.","taskSuggestion":"Enviar o orçamento","other":true}').taskSuggestion).toBeNull();
+    expect(parseJarvisChatResponse("Certo, vou ajudar.").taskSuggestion).toBeNull();
+  });
+});
+
+describe("hasPersonalCommitmentMarker", () => {
+  it("reconhece frases pessoais explícitas e descarta frases negadas ou sem compromisso", () => {
+    expect(hasPersonalCommitmentMarker("Preciso enviar o orçamento")).toBe(true);
+    expect(hasPersonalCommitmentMarker("Não posso esquecer de pagar a conta")).toBe(true);
+    expect(hasPersonalCommitmentMarker("We need to review the proposal")).toBe(true);
+    expect(hasPersonalCommitmentMarker("Don't let me forget to pay the bill")).toBe(true);
+    expect(hasPersonalCommitmentMarker("Não preciso enviar o orçamento")).toBe(false);
+    expect(hasPersonalCommitmentMarker("I don't need to send the report")).toBe(false);
+    expect(hasPersonalCommitmentMarker("Devo enviar o orçamento?")).toBe(false);
+    expect(hasPersonalCommitmentMarker("Não sei se vou enviar o orçamento")).toBe(false);
+    expect(hasPersonalCommitmentMarker("Preciso enviar o orçamento, mas já enviei")).toBe(false);
+    expect(hasPersonalCommitmentMarker("Talvez eu precise enviar o orçamento")).toBe(false);
+    expect(hasPersonalCommitmentMarker("Como funciona o envio do orçamento?")).toBe(false);
   });
 });

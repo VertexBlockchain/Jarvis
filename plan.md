@@ -134,3 +134,16 @@ O botão de criação informará que é uma tarefa local e que, no modo `context
 - `lib/jarvis-api.ts` e `server/_core/jarvis-context.ts`: contrato e normalização da resposta multimodal; `lib/jarvis-context.ts` continua filtrando memórias autorizadas.
 - `server/_core/index.ts` e `server/_core/jarvis-context.ts`: endpoint de análise multimodal, validação de tamanho/formato e quota por IP, além da instrução contra seguir texto da imagem.
 - `app/(tabs)/profile.tsx`: explicação precisa da permissão global e das autorizações por memória.
+
+## Compromissos do chat — terceiro incremento
+
+O endpoint de conversa manterá uma resposta legível e aceitará um `taskSuggestion` opcional em JSON estrito (`reply` + `taskSuggestion`). A sugestão só poderá ser produzida a partir de uma intenção explícita na mensagem mais recente da pessoa; o backend normaliza papéis de mensagem para `user`/`assistant`, ignora dados locais de sugestões antigas e aplica uma trava simples de linguagem de compromisso. Schema inválido, intenção ambígua ou título com data/hora/prazo devolve somente a resposta normal, sem tarefa.
+
+A resposta do chat aparece no balão atual. Se houver sugestão, a pessoa pode editar, descartar ou confirmar; o store a grava atomicamente como tarefa local com origem `conversation`, sem vencimento inferido e sem execução externa. O estado de confirmação evita duplicação por toques repetidos. No modo contextual, o filtro existente envia à IA apenas título/status, sem a origem; no modo local, continua enviando zero tarefas. Mensagens antigas seguem válidas com campos opcionais.
+
+### Estrutura alterada
+
+- `server/_core/index.ts` e `server/_core/jarvis-context.ts`: resposta estruturada, filtro determinístico de intenção e validação do título opcional.
+- `lib/jarvis-api.ts`: leitura da resposta e remoção de metadados persistidos antes de enviar histórico.
+- `hooks/use-jarvis-store.ts`: rascunho opcional por mensagem, edição/descarte e criação idempotente da tarefa confirmada.
+- `app/(tabs)/index.tsx` e `app/(tabs)/tasks.tsx`: revisão em contexto e proveniência da tarefa.

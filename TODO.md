@@ -78,3 +78,10 @@
 - [x] A pessoa deve poder editar ou descartar o título sugerido e só criar a tarefa local ao tocar em “Criar tarefa”; nenhuma tarefa deve ser criada automaticamente e nenhuma ação externa deve ser executada.
 - [x] A tarefa criada deve guardar apenas a origem `screenshot`, sem anexar a imagem ou seu resumo, e a tela Tarefas deve exibir “captura analisada”; tarefas antigas e manuais continuam funcionando sem alteração.
 - [x] O controle deve explicar que títulos/status das tarefas só são enviados à IA no modo `contextual`; no modo `local`, permanecem locais.
+
+## 11. Compromisso da conversa para tarefa revisável
+
+- [x] O endpoint deve continuar respondendo normalmente e só oferecer um `taskSuggestion` se a mensagem mais recente do usuário contiver uma intenção explícita de compromisso; mensagens de assistente, memórias e tarefas antigas não contam como nova intenção.
+- [x] A resposta estruturada deve validar estritamente `reply` e `taskSuggestion`; se o schema for inválido, a intenção ambígua ou o título contiver data/hora/prazo, a resposta continua visível sem proposta de tarefa.
+- [x] A pessoa deve poder editar ou descartar a proposta no próprio balão e só criar a tarefa local após tocar em “Criar tarefa”; toques repetidos não podem duplicar a tarefa e não deve haver prazo inferido ou ação externa.
+- [x] A tarefa confirmada deve guardar origem `conversation`, aparecer com essa proveniência em Tarefas e continuar sujeita aos controles de privacidade; modo local envia zero tarefas, modo contextual envia só título/status.

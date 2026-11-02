@@ -11,9 +11,10 @@ type ChatInput = {
 type ChatResponse = {
   text: string;
   fallback: boolean;
+  taskSuggestion: string | null;
 };
 
-type ScreenshotAnalysisResponse = ChatResponse & { taskSuggestion: string | null };
+type ScreenshotAnalysisResponse = ChatResponse;
 
 type TranscriptionResponse = {
   text: string;
@@ -29,20 +30,21 @@ export async function askJarvis(input: ChatInput): Promise<ChatResponse> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        messages: input.messages.slice(-12),
+        messages: input.messages.slice(-12).map(({ role, text }) => ({ role, text })),
         memories: input.memories.slice(0, 12),
         tasks: input.tasks.slice(0, 12),
       }),
     });
 
-    const data = (await response.json().catch(() => null)) as { text?: unknown; fallback?: unknown; error?: unknown } | null;
+    const data = (await response.json().catch(() => null)) as { text?: unknown; taskSuggestion?: unknown; fallback?: unknown; error?: unknown } | null;
     if (!response.ok || typeof data?.text !== "string") {
       throw new Error(typeof data?.error === "string" ? data.error : "jarvis_chat_failed");
     }
 
-    return { text: data.text, fallback: data.fallback === true };
+    const taskSuggestion = typeof data.taskSuggestion === "string" ? data.taskSuggestion.trim().slice(0, 160) || null : null;
+    return { text: data.text, taskSuggestion, fallback: data.fallback === true };
   } catch {
-    return { text: NETWORK_FALLBACK, fallback: true };
+    return { text: NETWORK_FALLBACK, taskSuggestion: null, fallback: true };
   }
 }
 
@@ -82,7 +84,7 @@ export async function transcribeJarvisAudio(uri: string): Promise<TranscriptionR
       headers: { "Content-Type": audio.type || "audio/m4a" },
       body: audio,
     });
-    const data = (await response.json().catch(() => null)) as { text?: unknown; fallback?: unknown } | null;
+    const data = (await response.json().catch(() => null)) as { text?: unknown; fallback?: unknown; error?: unknown } | null;
     if (!response.ok || typeof data?.text !== "string") return { text: "", fallback: true };
     return { text: data.text, fallback: data.fallback === true };
   } catch {

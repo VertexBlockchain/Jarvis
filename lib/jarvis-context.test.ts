@@ -42,7 +42,16 @@ describe("selectTasksForAI", () => {
       completed: false,
       createdAt: "2026-11-01T10:00:00.000Z",
       dueLabel: "amanhã às 09:00",
+      dueAt: "2026-11-02T09:00:00.000Z",
       origin: "screenshot",
+    },
+    {
+      id: "conversation-task",
+      title: "Enviar o orçamento",
+      completed: true,
+      createdAt: "2026-11-01T10:05:00.000Z",
+      dueAt: "2026-11-03T12:00:00.000Z",
+      origin: "conversation",
     },
   ];
 
@@ -51,6 +60,9 @@ describe("selectTasksForAI", () => {
   });
 
   it("no modo contextual envia apenas título e status, nunca data ou proveniência", () => {
-    expect(selectTasksForAI(tasks, "contextual")).toEqual([{ title: "Responder à Ana", completed: false }]);
+    expect(selectTasksForAI(tasks, "contextual")).toEqual([
+      { title: "Responder à Ana", completed: false },
+      { title: "Enviar o orçamento", completed: true },
+    ]);
   });
 });

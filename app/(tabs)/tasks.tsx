@@ -67,7 +67,7 @@ export default function TasksScreen() {
                 <Text style={[styles.taskTitle, task.completed && styles.taskTitleDone]}>{task.title}</Text>
                 <Text style={styles.taskMeta}>
                   {task.completed ? "concluída agora" : task.dueLabel ?? "sem prazo · local"}
-                  {task.origin === "screenshot" ? " · captura analisada" : ""}
+                  {task.origin === "screenshot" ? " · captura analisada" : task.origin === "conversation" ? " · sugestão da conversa" : ""}
                 </Text>
               </View>
               <Pressable onPress={() => remind(task.title)} accessibilityLabel="Agendar lembrete">

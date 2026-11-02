@@ -4,7 +4,7 @@ import { createContext, createElement, useCallback, useContext, useEffect, useMe
 export type MessageRole = "user" | "assistant";
 export type MemoryCategory = "pessoal" | "trabalho" | "preferência" | "objetivo";
 export type MemoryOrigin = "manual" | "screenshot";
-export type TaskOrigin = "manual" | "screenshot";
+export type TaskOrigin = "manual" | "screenshot" | "conversation";
 export type PrivacyMode = "local" | "contextual";
 
 export type ChatMessage = {
@@ -13,6 +13,8 @@ export type ChatMessage = {
   text: string;
   createdAt: string;
   fallback?: boolean;
+  taskSuggestion?: string;
+  taskSuggestionCreated?: boolean;
 };
 
 export type Memory = {
@@ -50,7 +52,9 @@ type JarvisState = {
 
 type JarvisStore = JarvisState & {
   hydrated: boolean;
-  addMessage: (role: MessageRole, text: string, fallback?: boolean) => ChatMessage;
+  addMessage: (role: MessageRole, text: string, fallback?: boolean, taskSuggestion?: string) => ChatMessage;
+  updateMessageTaskSuggestion: (id: string, text: string) => void;
+  createTaskFromMessage: (messageId: string, title: string) => void;
   addMemory: (text: string, category: MemoryCategory, origin?: MemoryOrigin) => Memory;
   updateMemory: (id: string, text: string, category: MemoryCategory) => void;
   setMemoryShareWithAI: (id: string, enabled: boolean) => void;
@@ -131,16 +135,53 @@ export function JarvisStoreProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => undefined);
   }, [hydrated, state]);
 
-  const addMessage = useCallback((role: MessageRole, text: string, fallback = false) => {
+  const addMessage = useCallback((role: MessageRole, text: string, fallback = false, taskSuggestion?: string) => {
+    const suggestedTitle = taskSuggestion?.trim().slice(0, 160);
     const message: ChatMessage = {
       id: createId(role),
       role,
       text,
       createdAt: new Date().toISOString(),
       fallback,
+      ...(suggestedTitle ? { taskSuggestion: suggestedTitle } : {}),
     };
     setState((current) => ({ ...current, messages: [...current.messages, message] }));
     return message;
+  }, []);
+
+  const updateMessageTaskSuggestion = useCallback((id: string, text: string) => {
+    setState((current) => ({
+      ...current,
+      messages: current.messages.map((message) =>
+        message.id === id && message.role === "assistant" && !message.taskSuggestionCreated
+          ? { ...message, taskSuggestion: text.slice(0, 160) }
+          : message,
+      ),
+    }));
+  }, []);
+
+  const createTaskFromMessage = useCallback((messageId: string, title: string) => {
+    const taskTitle = title.trim().slice(0, 160);
+    if (!taskTitle) return;
+    setState((current) => {
+      const sourceMessage = current.messages.find((message) => message.id === messageId);
+      if (!sourceMessage || sourceMessage.role !== "assistant" || sourceMessage.taskSuggestionCreated || !sourceMessage.taskSuggestion?.trim()) return current;
+
+      const task: JarvisTask = {
+        id: createId("task"),
+        title: taskTitle,
+        completed: false,
+        createdAt: new Date().toISOString(),
+        origin: "conversation",
+      };
+      return {
+        ...current,
+        messages: current.messages.map((message) =>
+          message.id === messageId ? { ...message, taskSuggestion: taskTitle, taskSuggestionCreated: true } : message,
+        ),
+        tasks: [task, ...current.tasks],
+      };
+    });
   }, []);
 
   const addMemory = useCallback((text: string, category: MemoryCategory, origin: MemoryOrigin = "manual") => {
@@ -215,10 +256,12 @@ export function JarvisStoreProvider({ children }: { children: ReactNode }) {
     setState(initialState);
   }, []);
 
-  const value = useMemo<JarvisStore>(() => ({
+  const value = useMemo(() => ({
     ...state,
     hydrated,
     addMessage,
+    updateMessageTaskSuggestion,
+    createTaskFromMessage,
     addMemory,
     updateMemory,
     setMemoryShareWithAI,
@@ -233,6 +276,8 @@ export function JarvisStoreProvider({ children }: { children: ReactNode }) {
     state,
     hydrated,
     addMessage,
+    updateMessageTaskSuggestion,
+    createTaskFromMessage,
     addMemory,
     updateMemory,
     setMemoryShareWithAI,
@@ -243,7 +288,7 @@ export function JarvisStoreProvider({ children }: { children: ReactNode }) {
     deleteTask,
     updatePreferences,
     clearAllData,
-  ]);
+  ]) as JarvisStore;
 
   return createElement(JarvisStoreContext.Provider, { value }, hydrated ? children : null);
 }

@@ -28,7 +28,7 @@ function formatTime(value: string) {
 }
 
 export default function HomeScreen() {
-  const { messages, memories, tasks, preferences, addMessage, addMemory, addTask, hydrated } = useJarvisStore();
+  const { messages, memories, tasks, preferences, addMessage, addMemory, addTask, updateMessageTaskSuggestion, createTaskFromMessage, hydrated } = useJarvisStore();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<OrbMode>("idle");
   const [isSending, setIsSending] = useState(false);
@@ -40,7 +40,11 @@ export default function HomeScreen() {
   const isRecording = recordingIntent || recorderState.isRecording;
 
   const pendingTasks = useMemo(() => tasks.filter((task) => !task.completed), [tasks]);
-  const recentMessages = useMemo(() => messages.slice(-8), [messages]);
+  const recentMessages = useMemo(() => {
+    const recentIds = new Set(messages.slice(-8).map((message) => message.id));
+    const pendingSuggestionIds = new Set(messages.filter((message) => message.taskSuggestion?.trim() && !message.taskSuggestionCreated).slice(-3).map((message) => message.id));
+    return messages.filter((message) => recentIds.has(message.id) || pendingSuggestionIds.has(message.id));
+  }, [messages]);
   const greeting = new Date().getHours() < 12 ? "Bom dia" : new Date().getHours() < 18 ? "Boa tarde" : "Boa noite";
 
   useEffect(() => {
@@ -84,7 +88,7 @@ export default function HomeScreen() {
       tasks: selectTasksForAI(tasks, preferences.privacyMode),
     });
 
-    addMessage("assistant", response.text, response.fallback);
+    addMessage("assistant", response.text, response.fallback, response.taskSuggestion ?? undefined);
     setIsSending(false);
     setMode(response.fallback ? "idle" : preferences.voiceEnabled ? "speaking" : "idle");
     if (preferences.voiceEnabled) speakJarvis(response.text);
@@ -199,6 +203,48 @@ export default function HomeScreen() {
                 {message.role === "assistant" && <JarvisOrb mode={message.fallback ? "idle" : "speaking"} compact />}
                 <View style={[styles.bubble, message.role === "user" ? styles.userBubble : styles.assistantBubble]}>
                   <Text style={[styles.messageText, message.role === "user" && styles.userMessageText]}>{message.text}</Text>
+                  {message.role === "assistant" && message.taskSuggestion ? (
+                    <View style={styles.taskSuggestionCard}>
+                      <View style={styles.taskSuggestionHeading}>
+                        <MaterialIcons name={message.taskSuggestionCreated ? "task-alt" : "arrow-forward"} size={15} color={colors.violet} />
+                        <Text style={styles.taskSuggestionLabel}>{message.taskSuggestionCreated ? "Tarefa adicionada" : "Próximo passo possível"}</Text>
+                      </View>
+                      {message.taskSuggestionCreated ? (
+                        <Text style={styles.taskSuggestionCreatedTitle}>{message.taskSuggestion}</Text>
+                      ) : (
+                        <TextInput
+                          value={message.taskSuggestion}
+                          onChangeText={(title) => updateMessageTaskSuggestion(message.id, title)}
+                          style={styles.taskSuggestionInput}
+                          placeholder="Revise o título da tarefa"
+                          placeholderTextColor="#6C86A3"
+                          maxLength={160}
+                          accessibilityLabel="Editar tarefa sugerida pelo Jarvis"
+                        />
+                      )}
+                      <Text style={styles.taskSuggestionNote}>
+                        Nada será criado sem sua confirmação. A tarefa fica local, sem prazo; títulos/status só acompanham a IA no modo Contextual.
+                      </Text>
+                      {message.taskSuggestionCreated ? (
+                        <Text style={styles.taskSuggestionDone}>Adicionada à lista de Tarefas neste aparelho.</Text>
+                      ) : (
+                        <View style={styles.taskSuggestionActions}>
+                          <Pressable onPress={() => updateMessageTaskSuggestion(message.id, "")} accessibilityLabel="Descartar sugestão de tarefa">
+                            <Text style={styles.taskSuggestionDismiss}>Descartar</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => createTaskFromMessage(message.id, message.taskSuggestion ?? "")}
+                            disabled={!message.taskSuggestion.trim()}
+                            style={[styles.taskSuggestionConfirm, !message.taskSuggestion.trim() && styles.sendButtonDisabled]}
+                            accessibilityLabel="Confirmar e criar tarefa local"
+                          >
+                            <MaterialIcons name="add-task" size={15} color={colors.ink} />
+                            <Text style={styles.taskSuggestionConfirmText}>Criar tarefa</Text>
+                          </Pressable>
+                        </View>
+                      )}
+                    </View>
+                  ) : null}
                   <View style={styles.messageMetaRow}>
                     {message.fallback && <Text style={styles.fallbackLabel}>modo reserva</Text>}
                     <Text style={[styles.messageTime, message.role === "user" && styles.userMessageTime]}>{formatTime(message.createdAt)}</Text>
@@ -290,6 +336,17 @@ const styles = StyleSheet.create({
   messageTime: { color: "#67809D", fontSize: 9 },
   userMessageTime: { color: "rgba(7,17,31,0.58)" },
   fallbackLabel: { color: "#C7A9FF", fontSize: 9, textTransform: "uppercase", letterSpacing: 0.6 },
+  taskSuggestionCard: { gap: 8, marginTop: 10, padding: 10, borderRadius: 13, backgroundColor: "rgba(167,131,255,0.08)", borderWidth: 1, borderColor: "rgba(167,131,255,0.27)" },
+  taskSuggestionHeading: { flexDirection: "row", alignItems: "center", gap: 5 },
+  taskSuggestionLabel: { color: "#D7CBFF", fontSize: 10, fontWeight: "800" },
+  taskSuggestionInput: { minHeight: 37, color: colors.text, fontSize: 12, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.line },
+  taskSuggestionCreatedTitle: { color: colors.text, fontSize: 12, fontWeight: "700", lineHeight: 17 },
+  taskSuggestionNote: { color: colors.muted, fontSize: 9, lineHeight: 13 },
+  taskSuggestionDone: { color: colors.cyan, fontSize: 9, fontWeight: "700" },
+  taskSuggestionActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  taskSuggestionDismiss: { color: colors.muted, fontSize: 10, fontWeight: "700", padding: 6 },
+  taskSuggestionConfirm: { minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 10, borderRadius: 10, backgroundColor: colors.violet },
+  taskSuggestionConfirmText: { color: colors.ink, fontSize: 10, fontWeight: "800" },
   quickActions: { gap: 8, paddingVertical: 2 },
   quickAction: { flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line },
   quickText: { color: colors.text, fontSize: 12, fontWeight: "600" },

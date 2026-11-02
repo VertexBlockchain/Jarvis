@@ -16,6 +16,7 @@ O MVP já entrega:
 - Cofre de Contexto com notas editáveis, origem visível e permissão individual para cada memória.
 - Análise opcional de uma captura escolhida; a nota precisa ser revisada antes de ser salva, e a imagem não é adicionada ao cofre.
 - Quando a captura mostra uma ação pendente explícita, o Jarvis pode sugerir um próximo passo editável; a tarefa só é criada após confirmação e fica marcada como originada da captura.
+- Quando a mensagem mais recente expressa um compromisso pessoal claro, o Jarvis pode propor um título de tarefa no próprio balão; a pessoa edita, descarta ou confirma, e a tarefa local aparece como “sugestão da conversa”, sem prazo inferido.
 - Fallbacks para rede, permissão negada, áudio inválido e indisponibilidade do núcleo de IA.
 
 ## Arquitetura
@@ -28,7 +29,7 @@ lib/jarvis-api.ts    Cliente de conversa, transcrição e análise de capturas
 lib/jarvis-commands.ts  Parser de comandos locais de baixa consequência
 lib/local-notifications.ts  Lembretes Expo nativos
 server/_core/index.ts  API Express, LLM, transcrição Whisper e análise visual
-server/_core/jarvis-context.ts  Validação JPEG, quota e normalização de análise multimodal
+server/_core/jarvis-context.ts  Validação JPEG/quota e schema estrito de propostas multimodais e de chat
 drizzle/             Schema do starter e autenticação futura
 ```
 
