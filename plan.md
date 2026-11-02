@@ -113,3 +113,17 @@ Dados locais devem ter ações explícitas de exclusão. A memória não deve se
 6. Rodar banco do starter, checagem TypeScript, lint e iniciar Metro/API.
 7. Inspecionar a Preview em viewport móvel e corrigir problemas visuais ou de fluxo.
 8. Salvar checkpoint no repositório gerenciado.
+
+## Cofre de Contexto — primeiro incremento
+
+O primeiro incremento transforma a área Memória em um cofre explícito e revisável. A pessoa poderá escolher uma captura de tela já salva no aparelho e tocar em “Enviar para análise”; o seletor Expo entrega base64 JPEG, que o backend verifica pela assinatura real e limita a 6 MB. O endpoint aplica uma quota de cinco análises por minuto por IP. Antes do envio, a interface informa que a captura vai ao serviço de IA configurado e permite cancelar. A captura não é guardada como contexto persistente; apenas a sugestão revisada pela pessoa pode virar nota local. Texto em imagens é conteúdo não confiável: o backend pede ao modelo que não siga instruções presentes na captura e registre somente fatos ou compromissos realmente visíveis.
+
+Cada item guardado manterá origem (`manual` ou `screenshot`), categoria, data de criação e uma permissão individual `shareWithAI`, desativada por padrão. A tela permitirá editar, apagar e alternar essa permissão. Dados antigos serão migrados com `shareWithAI: false` para evitar compartilhamento retroativo. O modo `local` não envia tarefas nem memórias; o modo `contextual` envia títulos/status das tarefas e somente memórias individualmente autorizadas. As mensagens e o contexto recente necessários para responder continuam sendo enviados ao serviço de IA, como está explicado no Perfil.
+
+### Estrutura alterada
+
+- `app/(tabs)/memory.tsx`: interface do Cofre, seleção explícita de captura, revisão da sugestão, edição, origem e controle por item.
+- `hooks/use-jarvis-store.ts`: estado persistente compartilhado entre abas, migração das memórias existentes, edição e autorização individual.
+- `lib/jarvis-api.ts` e `lib/jarvis-context.ts`: análise de captura no endpoint existente de backend e filtro de contexto permitido pelo usuário.
+- `server/_core/index.ts` e `server/_core/jarvis-context.ts`: endpoint de análise multimodal, validação de tamanho/formato e quota por IP, além da instrução contra seguir texto da imagem.
+- `app/(tabs)/profile.tsx`: explicação precisa da permissão global e das autorizações por memória.

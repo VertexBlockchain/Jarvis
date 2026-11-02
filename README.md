@@ -12,7 +12,9 @@ O MVP já entrega:
 - Comandos locais: `guarde na memória que...`, `crie uma tarefa...`, `me lembre de...` e `o que tenho para hoje?`.
 - Voz com `expo-audio`: gravação, permissão, envio do áudio atual e transcrição no backend.
 - Respostas faladas no Web Preview quando `speechSynthesis` está disponível.
-- Privacidade local por padrão; memórias e tarefas só acompanham a chamada LLM no modo contextual.
+- Privacidade local por padrão; no modo contextual vão títulos/status das tarefas e apenas memórias com autorização individual.
+- Cofre de Contexto com notas editáveis, origem visível e permissão individual para cada memória.
+- Análise opcional de uma captura de tela escolhida pela pessoa; o texto sugerido precisa ser revisado antes de ser salvo, e a imagem não é adicionada ao cofre.
 - Fallbacks para rede, permissão negada, áudio inválido e indisponibilidade do núcleo de IA.
 
 ## Arquitetura
@@ -21,14 +23,15 @@ O MVP já entrega:
 app/                 Telas Expo Router: Hoje, Memória, Tarefas e Perfil
 components/          Orb, ícones e componentes visuais
 hooks/               Estado local persistido com AsyncStorage
-lib/jarvis-api.ts    Cliente de conversa e transcrição
+lib/jarvis-api.ts    Cliente de conversa, transcrição e análise de capturas
 lib/jarvis-commands.ts  Parser de comandos locais de baixa consequência
 lib/local-notifications.ts  Lembretes Expo nativos
-server/_core/index.ts  API Express, LLM e transcrição Whisper compatível
+server/_core/index.ts  API Express, LLM, transcrição Whisper e análise visual
+server/_core/jarvis-context.ts  Validação JPEG e quota de análise por IP
 drizzle/             Schema do starter e autenticação futura
 ```
 
-O celular nunca recebe `MANUS_API_KEY`. O app envia mensagens para rotas relativas do próprio projeto; o servidor chama os serviços gerenciados usando as credenciais de runtime.
+O celular nunca recebe `MANUS_API_KEY`. No Preview Web, o app deriva a URL do backend a partir do host; builds nativos precisam receber `EXPO_PUBLIC_API_BASE_URL`. O servidor chama os serviços gerenciados usando as credenciais de runtime.
 
 ## Desenvolvimento
 
@@ -44,9 +47,11 @@ pnpm dev
 
 As variáveis protegidas são carregadas pelo ambiente do projeto. Não coloque chaves em `app.config.ts`, no bundle Expo, no README ou em commits.
 
+Para analisar uma captura, a pessoa escolhe uma imagem salva no aparelho e toca em “Enviar para análise”. O app envia JPEG de até 6 MB ao serviço de IA configurado; o servidor verifica a assinatura real da imagem e limita a cinco análises por minuto por IP. Somente o texto revisado e salvo fica no estado local do Jarvis. Nenhuma captura é monitorada ou lida em segundo plano.
+
 ## Privacidade e limites atuais
 
-O MVP não lê automaticamente todas as mensagens, notificações ou outros aplicativos. Também não envia mensagens, marca consultas, faz compras ou cancela compromissos sem uma integração explícita e confirmação do usuário. A captura de voz e notificações deve ser verificada em um aparelho Android/iOS real; a Preview Web valida o bundle e a interface, não permissões nativas.
+O MVP não lê automaticamente todas as mensagens, notificações ou outros aplicativos. Também não envia mensagens, marca consultas, faz compras ou cancela compromissos sem uma integração explícita e confirmação do usuário. A quota da análise de captura é apenas em memória e por IP; antes de expor o serviço publicamente, adicione autenticação e quota distribuída por usuário. A captura de voz e notificações deve ser verificada em um aparelho Android/iOS real; a Preview Web valida o bundle e a interface, não permissões nativas.
 
 ## Próximos passos
 

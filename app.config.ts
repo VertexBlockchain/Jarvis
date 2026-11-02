@@ -106,6 +106,12 @@ const config: ExpoConfig = {
   plugins: [
     "expo-asset",
     "expo-router",
+    [
+      "expo-image-picker",
+      {
+        photosPermission: "O Jarvis acessa fotos apenas quando você escolhe uma captura para analisar.",
+      },
+    ],
     "expo-notifications",
     [
       "expo-audio",

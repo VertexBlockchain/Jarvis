@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useCallback, useEffect, useState } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type MessageRole = "user" | "assistant";
 export type MemoryCategory = "pessoal" | "trabalho" | "preferência" | "objetivo";
+export type MemoryOrigin = "manual" | "screenshot";
 export type PrivacyMode = "local" | "contextual";
 
 export type ChatMessage = {
@@ -17,7 +18,10 @@ export type Memory = {
   id: string;
   text: string;
   category: MemoryCategory;
+  origin: MemoryOrigin;
+  shareWithAI: boolean;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type JarvisTask = {
@@ -42,6 +46,21 @@ type JarvisState = {
   preferences: JarvisPreferences;
 };
 
+type JarvisStore = JarvisState & {
+  hydrated: boolean;
+  addMessage: (role: MessageRole, text: string, fallback?: boolean) => ChatMessage;
+  addMemory: (text: string, category: MemoryCategory, origin?: MemoryOrigin) => Memory;
+  updateMemory: (id: string, text: string, category: MemoryCategory) => void;
+  setMemoryShareWithAI: (id: string, enabled: boolean) => void;
+  deleteMemory: (id: string) => void;
+  clearMemories: () => void;
+  addTask: (title: string, dueLabel?: string, dueAt?: string) => JarvisTask;
+  toggleTask: (id: string) => void;
+  deleteTask: (id: string) => void;
+  updatePreferences: (preferences: Partial<JarvisPreferences>) => void;
+  clearAllData: () => void;
+};
+
 const STORAGE_KEY = "jarvis-local-state-v1";
 
 const welcomeMessage: ChatMessage = {
@@ -62,6 +81,8 @@ const initialState: JarvisState = {
   },
 };
 
+const JarvisStoreContext = createContext<JarvisStore | null>(null);
+
 function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -70,9 +91,17 @@ function mergeStoredState(value: string | null): JarvisState {
   if (!value) return initialState;
   try {
     const parsed = JSON.parse(value) as Partial<JarvisState>;
+    const memories = Array.isArray(parsed.memories)
+      ? parsed.memories.map((memory) => ({
+          ...memory,
+          origin: memory.origin === "screenshot" ? "screenshot" as const : "manual" as const,
+          // Legacy entries must not become shareable without a fresh user choice.
+          shareWithAI: memory.shareWithAI === true,
+        }))
+      : [];
     return {
       messages: Array.isArray(parsed.messages) && parsed.messages.length > 0 ? parsed.messages : initialState.messages,
-      memories: Array.isArray(parsed.memories) ? parsed.memories : [],
+      memories,
       tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
       preferences: {
         ...initialState.preferences,
@@ -84,7 +113,7 @@ function mergeStoredState(value: string | null): JarvisState {
   }
 }
 
-export function useJarvisStore() {
+export function JarvisStoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<JarvisState>(initialState);
   const [hydrated, setHydrated] = useState(false);
 
@@ -112,10 +141,35 @@ export function useJarvisStore() {
     return message;
   }, []);
 
-  const addMemory = useCallback((text: string, category: MemoryCategory) => {
-    const memory: Memory = { id: createId("memory"), text: text.trim(), category, createdAt: new Date().toISOString() };
+  const addMemory = useCallback((text: string, category: MemoryCategory, origin: MemoryOrigin = "manual") => {
+    const memory: Memory = {
+      id: createId("memory"),
+      text: text.trim(),
+      category,
+      origin,
+      shareWithAI: false,
+      createdAt: new Date().toISOString(),
+    };
     setState((current) => ({ ...current, memories: [memory, ...current.memories] }));
     return memory;
+  }, []);
+
+  const updateMemory = useCallback((id: string, text: string, category: MemoryCategory) => {
+    setState((current) => ({
+      ...current,
+      memories: current.memories.map((memory) =>
+        memory.id === id ? { ...memory, text: text.trim(), category, updatedAt: new Date().toISOString() } : memory,
+      ),
+    }));
+  }, []);
+
+  const setMemoryShareWithAI = useCallback((id: string, enabled: boolean) => {
+    setState((current) => ({
+      ...current,
+      memories: current.memories.map((memory) =>
+        memory.id === id ? { ...memory, shareWithAI: enabled, updatedAt: new Date().toISOString() } : memory,
+      ),
+    }));
   }, []);
 
   const deleteMemory = useCallback((id: string) => {
@@ -158,11 +212,13 @@ export function useJarvisStore() {
     setState(initialState);
   }, []);
 
-  return {
+  const value = useMemo<JarvisStore>(() => ({
     ...state,
     hydrated,
     addMessage,
     addMemory,
+    updateMemory,
+    setMemoryShareWithAI,
     deleteMemory,
     clearMemories,
     addTask,
@@ -170,5 +226,27 @@ export function useJarvisStore() {
     deleteTask,
     updatePreferences,
     clearAllData,
-  };
+  }), [
+    state,
+    hydrated,
+    addMessage,
+    addMemory,
+    updateMemory,
+    setMemoryShareWithAI,
+    deleteMemory,
+    clearMemories,
+    addTask,
+    toggleTask,
+    deleteTask,
+    updatePreferences,
+    clearAllData,
+  ]);
+
+  return createElement(JarvisStoreContext.Provider, { value }, hydrated ? children : null);
+}
+
+export function useJarvisStore() {
+  const store = useContext(JarvisStoreContext);
+  if (!store) throw new Error("useJarvisStore must be used within JarvisStoreProvider");
+  return store;
 }

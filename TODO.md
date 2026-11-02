@@ -40,7 +40,7 @@
 
 - [x] Frases explícitas como “guarde na memória que…”, “crie uma tarefa…” e “me lembre de…” devem ser resolvidas localmente, sem enviar esse comando ao servidor LLM.
 - [x] A frase “o que tenho para hoje?” deve consultar as tarefas abertas locais e responder com um resumo.
-- [x] Cada tarefa deve oferecer o agendamento opcional de um lembrete local; por padrão são 30 minutos depois, e comandos com “hoje às HH:MM” ou “amanhã às HH:MM” usam o horário exato, solicitando a permissão de notificações no Android/iOS e explicando a limitação na Preview Web.
+- [x] Cada tarefa deve oferecer o agendamento opcional de um lembrete local; por padrão são 30 minutos depois, e comandos com “hoje às HH:MM” ou “amanhã às 09:00” usam o horário exato, solicitando a permissão de notificações no Android/iOS e explicando a limitação na Preview Web.
 - [x] Os comandos locais devem possuir testes unitários para memória, tarefa com prazo, consulta de pendências e rejeição de conversa comum.
 - [x] A captura de voz nativa deve transformar fala em texto usando o microfone e o serviço de transcrição, com tratamento de permissão e erro.
 - [ ] O Android deve receber a bolha flutuante e o calendário nativo após a confirmação das permissões do sistema.
@@ -60,3 +60,14 @@
 - [x] O agendador deve usar gatilho de data quando o horário ainda estiver no futuro e manter o fallback de 30 minutos para tarefas sem horário.
 - [x] A tela Tarefas deve informar se o lembrete foi agendado no horário exato ou no fallback de 30 minutos.
 - [ ] Calendário nativo deve reutilizar o mesmo `dueAt`, mas só criar eventos depois de uma confirmação explícita do usuário.
+
+## 9. Cofre de Contexto com origem e autorização explícitas
+
+- [x] A área de Memória deve se apresentar como um Cofre de Contexto: nenhum contexto novo entra automaticamente a partir da conversa ou de uma captura de tela.
+- [x] A pessoa pode escolher uma captura de tela salva e tocar explicitamente em “Enviar para análise”; a interface informa que a imagem JPEG será enviada ao serviço de IA configurado e permite remover/cancelar antes do envio.
+- [x] O backend valida base64, MIME e assinatura JPEG real, limita a imagem a 6 MB, aplica uma quota de cinco análises por minuto por IP e instrui o modelo a tratar o conteúdo visual como dado não confiável.
+- [x] A sugestão gerada aparece em texto editável; só é guardada após revisão e toque em “Guardar no cofre”. A imagem não é adicionada à memória persistente local.
+- [x] Cada memória exibe sua origem (`adicionada por você` ou `captura analisada`), permite edição, remoção individual confirmada e limpeza de todas, e possui permissão individual para uso em respostas da IA, desligada por padrão.
+- [x] O modo `local` não envia tarefas ou memórias; no modo `contextual`, títulos/status de tarefas são enviados e somente memórias com permissão individual ativada acompanham a mensagem. Memórias antigas migram com essa permissão desligada.
+- [x] O Perfil explica o envio da conversa recente, das tarefas no modo contextual e das memórias autorizadas individualmente.
+- [ ] Testar seleção/envio/revisão em Expo Go, confirmar suporte a visão no provedor, validar `EXPO_PUBLIC_API_BASE_URL` no build nativo e substituir a quota em memória por autenticação/quota distribuída antes de exposição pública; esta sessão não conseguiu anexar o projeto WebDev para Preview nem acessou dispositivo móvel.

@@ -1,9 +1,10 @@
 import { getApiBaseUrl } from "@/constants/oauth";
-import type { ChatMessage, JarvisTask, Memory } from "@/hooks/use-jarvis-store";
+import type { ChatMessage, JarvisTask } from "@/hooks/use-jarvis-store";
+import type { SharedMemory } from "@/lib/jarvis-context";
 
 type ChatInput = {
   messages: ChatMessage[];
-  memories: Memory[];
+  memories: SharedMemory[];
   tasks: JarvisTask[];
 };
 
@@ -40,6 +41,26 @@ export async function askJarvis(input: ChatInput): Promise<ChatResponse> {
     return { text: data.text, fallback: data.fallback === true };
   } catch {
     return { text: NETWORK_FALLBACK, fallback: true };
+  }
+}
+
+export async function analyzeJarvisScreenshot(imageBase64: string, mimeType: string): Promise<ChatResponse> {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/api/jarvis/context/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageBase64, mimeType }),
+    });
+    const data = (await response.json().catch(() => null)) as { text?: unknown; fallback?: unknown } | null;
+    if (typeof data?.text !== "string") {
+      throw new Error("jarvis_context_analysis_failed");
+    }
+    return { text: data.text, fallback: !response.ok || data.fallback === true };
+  } catch {
+    return {
+      text: "Não consegui analisar essa captura agora. Você pode tentar novamente ou guardar uma nota manualmente.",
+      fallback: true,
+    };
   }
 }
 

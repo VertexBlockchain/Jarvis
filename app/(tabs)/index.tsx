@@ -9,6 +9,7 @@ import { JarvisOrb, type OrbMode } from "@/components/jarvis-orb";
 import { useJarvisStore } from "@/hooks/use-jarvis-store";
 import { askJarvis, speakJarvis, transcribeJarvisAudio } from "@/lib/jarvis-api";
 import { parseLocalCommand } from "@/lib/jarvis-commands";
+import { selectMemoriesForAI } from "@/lib/jarvis-context";
 
 const colors = {
   ink: "#07111F",
@@ -79,7 +80,7 @@ export default function HomeScreen() {
 
     const response = await askJarvis({
       messages: [...messages, userMessage],
-      memories: preferences.privacyMode === "contextual" ? memories : [],
+      memories: selectMemoriesForAI(memories, preferences.privacyMode),
       tasks: preferences.privacyMode === "contextual" ? tasks : [],
     });
 
