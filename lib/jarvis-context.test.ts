@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { selectMemoriesForAI } from "./jarvis-context";
-import type { Memory } from "../hooks/use-jarvis-store";
+import { selectMemoriesForAI, selectTasksForAI } from "./jarvis-context";
+import type { JarvisTask, Memory } from "../hooks/use-jarvis-store";
 
 const memories: Memory[] = [
   {
@@ -31,5 +31,26 @@ describe("selectMemoriesForAI", () => {
     expect(selectMemoriesForAI(memories, "contextual")).toEqual([
       { text: "Gosto de planejar pela manhã", category: "preferência" },
     ]);
+  });
+});
+
+describe("selectTasksForAI", () => {
+  const tasks: JarvisTask[] = [
+    {
+      id: "capture-task",
+      title: "Responder à Ana",
+      completed: false,
+      createdAt: "2026-11-01T10:00:00.000Z",
+      dueLabel: "amanhã às 09:00",
+      origin: "screenshot",
+    },
+  ];
+
+  it("não envia tarefas no modo local", () => {
+    expect(selectTasksForAI(tasks, "local")).toEqual([]);
+  });
+
+  it("no modo contextual envia apenas título e status, nunca data ou proveniência", () => {
+    expect(selectTasksForAI(tasks, "contextual")).toEqual([{ title: "Responder à Ana", completed: false }]);
   });
 });

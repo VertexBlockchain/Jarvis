@@ -120,10 +120,17 @@ O primeiro incremento transforma a área Memória em um cofre explícito e revis
 
 Cada item guardado manterá origem (`manual` ou `screenshot`), categoria, data de criação e uma permissão individual `shareWithAI`, desativada por padrão. A tela permitirá editar, apagar e alternar essa permissão. Dados antigos serão migrados com `shareWithAI: false` para evitar compartilhamento retroativo. O modo `local` não envia tarefas nem memórias; o modo `contextual` envia títulos/status das tarefas e somente memórias individualmente autorizadas. As mensagens e o contexto recente necessários para responder continuam sendo enviados ao serviço de IA, como está explicado no Perfil.
 
+## Ponte de contexto para próximo passo — segundo incremento
+
+Na análise de uma captura selecionada, o backend pode retornar uma nota curta e, somente se a imagem mostrar claramente uma ação pendente, uma sugestão opcional de tarefa. O contrato exige JSON exato com `summary` não vazia e `taskSuggestion` string ou nula; campos ausentes/extras ou tipos inválidos descartam a sugestão. O parser também rejeita títulos com marcadores de data, hora ou prazo, sem preencher campos de prazo. Na tela, o título é editável e só cria tarefa local quando a pessoa toca em “Criar tarefa”. A tarefa guarda apenas a origem `screenshot` para transparência; nenhum conteúdo da captura é anexado à tarefa ou salvo automaticamente como memória.
+
+O botão de criação informará que é uma tarefa local e que, no modo `contextual`, títulos e status de tarefas podem seguir para a IA. A tela Tarefas exibirá a origem “captura analisada”. Nenhuma mensagem, e-mail, compra, lembrete externo ou outra ação será executada a partir da imagem.
+
 ### Estrutura alterada
 
 - `app/(tabs)/memory.tsx`: interface do Cofre, seleção explícita de captura, revisão da sugestão, edição, origem e controle por item.
+- `app/(tabs)/tasks.tsx`: rótulo de proveniência para tarefas criadas a partir de uma captura.
 - `hooks/use-jarvis-store.ts`: estado persistente compartilhado entre abas, migração das memórias existentes, edição e autorização individual.
-- `lib/jarvis-api.ts` e `lib/jarvis-context.ts`: análise de captura no endpoint existente de backend e filtro de contexto permitido pelo usuário.
+- `lib/jarvis-api.ts` e `server/_core/jarvis-context.ts`: contrato e normalização da resposta multimodal; `lib/jarvis-context.ts` continua filtrando memórias autorizadas.
 - `server/_core/index.ts` e `server/_core/jarvis-context.ts`: endpoint de análise multimodal, validação de tamanho/formato e quota por IP, além da instrução contra seguir texto da imagem.
 - `app/(tabs)/profile.tsx`: explicação precisa da permissão global e das autorizações por memória.

@@ -71,3 +71,10 @@
 - [x] O modo `local` não envia tarefas ou memórias; no modo `contextual`, títulos/status de tarefas são enviados e somente memórias com permissão individual ativada acompanham a mensagem. Memórias antigas migram com essa permissão desligada.
 - [x] O Perfil explica o envio da conversa recente, das tarefas no modo contextual e das memórias autorizadas individualmente.
 - [ ] Testar seleção/envio/revisão em Expo Go, confirmar suporte a visão no provedor, validar `EXPO_PUBLIC_API_BASE_URL` no build nativo e substituir a quota em memória por autenticação/quota distribuída antes de exposição pública; esta sessão não conseguiu anexar o projeto WebDev para Preview nem acessou dispositivo móvel.
+
+## 10. Ponte de contexto para próximo passo
+
+- [x] Quando uma captura analisada mostrar claramente uma ação pendente, o Jarvis deve oferecer uma sugestão opcional de tarefa curta; se a ação não estiver explícita, o JSON não seguir exatamente o schema ou o título contiver data/hora/prazo, não deve haver sugestão executável.
+- [x] A pessoa deve poder editar ou descartar o título sugerido e só criar a tarefa local ao tocar em “Criar tarefa”; nenhuma tarefa deve ser criada automaticamente e nenhuma ação externa deve ser executada.
+- [x] A tarefa criada deve guardar apenas a origem `screenshot`, sem anexar a imagem ou seu resumo, e a tela Tarefas deve exibir “captura analisada”; tarefas antigas e manuais continuam funcionando sem alteração.
+- [x] O controle deve explicar que títulos/status das tarefas só são enviados à IA no modo `contextual`; no modo `local`, permanecem locais.

@@ -52,8 +52,31 @@ export default function TasksScreen() {
           <View style={styles.filterRow}><Pressable onPress={() => setFilter("abertas")} style={[styles.filter, filter === "abertas" && styles.filterActive]}><Text style={[styles.filterText, filter === "abertas" && styles.filterTextActive]}>Abertas</Text></Pressable><Pressable onPress={() => setFilter("concluídas")} style={[styles.filter, filter === "concluídas" && styles.filterActive]}><Text style={[styles.filterText, filter === "concluídas" && styles.filterTextActive]}>Concluídas</Text></Pressable></View>
           {reminderMessage ? <View style={styles.reminderNotice}><MaterialIcons name="notifications-active" size={16} color={colors.cyan} /><Text style={styles.reminderText}>{reminderMessage}</Text></View> : null}
 
-          {visibleTasks.length === 0 ? <View style={styles.empty}><MaterialIcons name={filter === "abertas" ? "wb-sunny" : "done-all"} size={26} color={colors.violet} /><Text style={styles.emptyTitle}>{filter === "abertas" ? "Tudo limpo por aqui" : "Nada concluído ainda"}</Text><Text style={styles.emptyText}>{filter === "abertas" ? "Adicione uma tarefa pequena. Clareza costuma começar pelo próximo passo." : "Quando você concluir algo, ele aparece nesta visão."}</Text></View> : visibleTasks.map((task) => (
-            <View key={task.id} style={[styles.taskCard, task.completed && styles.taskDone]}><Pressable onPress={() => toggleTask(task.id)} style={[styles.checkbox, task.completed && styles.checkboxDone]} accessibilityLabel={task.completed ? "Reabrir tarefa" : "Concluir tarefa"}>{task.completed && <MaterialIcons name="check" size={16} color={colors.ink} />}</Pressable><View style={styles.taskCopy}><Text style={[styles.taskTitle, task.completed && styles.taskTitleDone]}>{task.title}</Text><Text style={styles.taskMeta}>{task.completed ? "concluída agora" : task.dueLabel ?? "sem prazo · local"}</Text></View><Pressable onPress={() => remind(task.title)} accessibilityLabel="Agendar lembrete"><MaterialIcons name="notifications-none" size={20} color={colors.cyan} /></Pressable><Pressable onPress={() => deleteTask(task.id)} accessibilityLabel="Apagar tarefa"><MaterialIcons name="more-vert" size={20} color={colors.muted} /></Pressable></View>
+          {visibleTasks.length === 0 ? (
+            <View style={styles.empty}>
+              <MaterialIcons name={filter === "abertas" ? "wb-sunny" : "done-all"} size={26} color={colors.violet} />
+              <Text style={styles.emptyTitle}>{filter === "abertas" ? "Tudo limpo por aqui" : "Nada concluído ainda"}</Text>
+              <Text style={styles.emptyText}>{filter === "abertas" ? "Adicione uma tarefa pequena. Clareza costuma começar pelo próximo passo." : "Quando você concluir algo, ele aparece nesta visão."}</Text>
+            </View>
+          ) : visibleTasks.map((task) => (
+            <View key={task.id} style={[styles.taskCard, task.completed && styles.taskDone]}>
+              <Pressable onPress={() => toggleTask(task.id)} style={[styles.checkbox, task.completed && styles.checkboxDone]} accessibilityLabel={task.completed ? "Reabrir tarefa" : "Concluir tarefa"}>
+                {task.completed && <MaterialIcons name="check" size={16} color={colors.ink} />}
+              </Pressable>
+              <View style={styles.taskCopy}>
+                <Text style={[styles.taskTitle, task.completed && styles.taskTitleDone]}>{task.title}</Text>
+                <Text style={styles.taskMeta}>
+                  {task.completed ? "concluída agora" : task.dueLabel ?? "sem prazo · local"}
+                  {task.origin === "screenshot" ? " · captura analisada" : ""}
+                </Text>
+              </View>
+              <Pressable onPress={() => remind(task.title)} accessibilityLabel="Agendar lembrete">
+                <MaterialIcons name="notifications-none" size={20} color={colors.cyan} />
+              </Pressable>
+              <Pressable onPress={() => deleteTask(task.id)} accessibilityLabel="Apagar tarefa">
+                <MaterialIcons name="more-vert" size={20} color={colors.muted} />
+              </Pressable>
+            </View>
           ))}
 
           <View style={styles.footerNote}><MaterialIcons name="info-outline" size={16} color={colors.muted} /><Text style={styles.footerText}>As tarefas são locais. O botão de sino agenda um lembrete no aparelho; comandos com “hoje às 08:30” ou “amanhã às 09:00” usam o horário informado.</Text></View>

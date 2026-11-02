@@ -4,6 +4,7 @@ import { createContext, createElement, useCallback, useContext, useEffect, useMe
 export type MessageRole = "user" | "assistant";
 export type MemoryCategory = "pessoal" | "trabalho" | "preferência" | "objetivo";
 export type MemoryOrigin = "manual" | "screenshot";
+export type TaskOrigin = "manual" | "screenshot";
 export type PrivacyMode = "local" | "contextual";
 
 export type ChatMessage = {
@@ -31,6 +32,7 @@ export type JarvisTask = {
   dueAt?: string;
   completed: boolean;
   createdAt: string;
+  origin?: TaskOrigin;
 };
 
 export type JarvisPreferences = {
@@ -54,7 +56,7 @@ type JarvisStore = JarvisState & {
   setMemoryShareWithAI: (id: string, enabled: boolean) => void;
   deleteMemory: (id: string) => void;
   clearMemories: () => void;
-  addTask: (title: string, dueLabel?: string, dueAt?: string) => JarvisTask;
+  addTask: (title: string, dueLabel?: string, dueAt?: string, origin?: TaskOrigin) => JarvisTask;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   updatePreferences: (preferences: Partial<JarvisPreferences>) => void;
@@ -180,7 +182,7 @@ export function JarvisStoreProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, memories: [] }));
   }, []);
 
-  const addTask = useCallback((title: string, dueLabel?: string, dueAt?: string) => {
+  const addTask = useCallback((title: string, dueLabel?: string, dueAt?: string, origin: TaskOrigin = "manual") => {
     const task: JarvisTask = {
       id: createId("task"),
       title: title.trim(),
@@ -188,6 +190,7 @@ export function JarvisStoreProvider({ children }: { children: ReactNode }) {
       dueAt,
       completed: false,
       createdAt: new Date().toISOString(),
+      origin,
     };
     setState((current) => ({ ...current, tasks: [task, ...current.tasks] }));
     return task;

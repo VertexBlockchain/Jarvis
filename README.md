@@ -14,7 +14,8 @@ O MVP já entrega:
 - Respostas faladas no Web Preview quando `speechSynthesis` está disponível.
 - Privacidade local por padrão; no modo contextual vão títulos/status das tarefas e apenas memórias com autorização individual.
 - Cofre de Contexto com notas editáveis, origem visível e permissão individual para cada memória.
-- Análise opcional de uma captura de tela escolhida pela pessoa; o texto sugerido precisa ser revisado antes de ser salvo, e a imagem não é adicionada ao cofre.
+- Análise opcional de uma captura escolhida; a nota precisa ser revisada antes de ser salva, e a imagem não é adicionada ao cofre.
+- Quando a captura mostra uma ação pendente explícita, o Jarvis pode sugerir um próximo passo editável; a tarefa só é criada após confirmação e fica marcada como originada da captura.
 - Fallbacks para rede, permissão negada, áudio inválido e indisponibilidade do núcleo de IA.
 
 ## Arquitetura
@@ -27,7 +28,7 @@ lib/jarvis-api.ts    Cliente de conversa, transcrição e análise de capturas
 lib/jarvis-commands.ts  Parser de comandos locais de baixa consequência
 lib/local-notifications.ts  Lembretes Expo nativos
 server/_core/index.ts  API Express, LLM, transcrição Whisper e análise visual
-server/_core/jarvis-context.ts  Validação JPEG e quota de análise por IP
+server/_core/jarvis-context.ts  Validação JPEG, quota e normalização de análise multimodal
 drizzle/             Schema do starter e autenticação futura
 ```
 
@@ -47,7 +48,7 @@ pnpm dev
 
 As variáveis protegidas são carregadas pelo ambiente do projeto. Não coloque chaves em `app.config.ts`, no bundle Expo, no README ou em commits.
 
-Para analisar uma captura, a pessoa escolhe uma imagem salva no aparelho e toca em “Enviar para análise”. O app envia JPEG de até 6 MB ao serviço de IA configurado; o servidor verifica a assinatura real da imagem e limita a cinco análises por minuto por IP. Somente o texto revisado e salvo fica no estado local do Jarvis. Nenhuma captura é monitorada ou lida em segundo plano.
+Para analisar uma captura, a pessoa escolhe uma imagem salva no aparelho e toca em “Enviar para análise”. O app envia JPEG de até 6 MB ao serviço de IA configurado; o servidor verifica a assinatura real da imagem e limita a cinco análises por minuto por IP. A IA pode sugerir uma tarefa se a imagem indicar uma ação pendente explícita, mas a sugestão é editável e só cria uma tarefa local após toque em “Criar tarefa”; nenhum prazo é inferido. A tarefa guarda apenas a origem, sem anexar a captura ou seu resumo. Nenhuma captura é monitorada ou lida em segundo plano.
 
 ## Privacidade e limites atuais
 

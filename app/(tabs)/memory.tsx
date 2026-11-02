@@ -49,6 +49,7 @@ export default function MemoryScreen() {
     setMemoryShareWithAI,
     deleteMemory,
     clearMemories,
+    addTask,
   } = useJarvisStore();
   const [text, setText] = useState("");
   const [category, setCategory] = useState<MemoryCategory>("pessoal");
@@ -57,6 +58,7 @@ export default function MemoryScreen() {
   const [draftOrigin, setDraftOrigin] = useState<MemoryOrigin>("manual");
   const [capture, setCapture] = useState<SelectedCapture | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [taskSuggestion, setTaskSuggestion] = useState("");
   const [notice, setNotice] = useState("");
   const visibleMemories = useMemo(() => (showAll ? memories : memories.slice(0, 5)), [memories, showAll]);
 
@@ -66,6 +68,7 @@ export default function MemoryScreen() {
     setEditingId(null);
     setDraftOrigin("manual");
     setCapture(null);
+    setTaskSuggestion("");
   };
 
   const chooseCapture = async () => {
@@ -91,6 +94,7 @@ export default function MemoryScreen() {
       setDraftOrigin("manual");
       setEditingId(null);
       setText("");
+      setTaskSuggestion("");
       setNotice("Captura selecionada. Ela só será enviada se você tocar em “Enviar para análise”.");
     } catch {
       setNotice("Não consegui abrir as imagens deste aparelho agora.");
@@ -104,13 +108,26 @@ export default function MemoryScreen() {
     const result = await analyzeJarvisScreenshot(capture.base64, capture.mimeType);
     setIsAnalyzing(false);
     if (result.fallback) {
+      setTaskSuggestion("");
       setNotice(result.text);
       return;
     }
+    const suggestedTask = result.taskSuggestion?.trim() ?? "";
+    setTaskSuggestion(suggestedTask);
     setText(result.text.trim());
     setDraftOrigin("screenshot");
     setCapture((current) => (current ? { ...current, base64: "" } : null));
-    setNotice("Sugestão pronta. Revise ou edite o texto antes de guardar; a captura não será salva no cofre.");
+    setNotice(suggestedTask
+      ? "Revise a nota e o próximo passo. Nada será guardado ou criado sem sua confirmação."
+      : "Sugestão pronta. Não encontrei uma ação explícita para transformar em tarefa; revise a nota antes de guardar.");
+  };
+
+  const createTaskFromSuggestion = () => {
+    const title = taskSuggestion.trim();
+    if (!title) return;
+    addTask(title, undefined, undefined, "screenshot");
+    setTaskSuggestion("");
+    setNotice("Tarefa local criada após sua confirmação. Nenhum prazo foi inferido; títulos/status podem ir à IA apenas no modo Contextual.");
   };
 
   const save = () => {
@@ -131,6 +148,7 @@ export default function MemoryScreen() {
     setCategory(memory.category);
     setDraftOrigin(memory.origin);
     setCapture(null);
+    setTaskSuggestion("");
     setNotice("Edite o texto e salve para atualizar este item.");
   };
 
@@ -243,6 +261,36 @@ export default function MemoryScreen() {
                 {isAnalyzing ? <ActivityIndicator color={colors.ink} /> : <MaterialIcons name="auto-awesome" size={18} color={colors.ink} />}
                 <Text style={styles.analyzeButtonText}>{isAnalyzing ? "Analisando captura…" : "Enviar para análise"}</Text>
               </Pressable>
+            ) : null}
+
+            {taskSuggestion ? (
+              <View style={styles.taskSuggestionCard}>
+                <View style={styles.taskSuggestionHeading}>
+                  <MaterialIcons name="arrow-forward" size={16} color={colors.violet} />
+                  <Text style={styles.taskSuggestionTitle}>Próximo passo possível</Text>
+                </View>
+                <TextInput
+                  value={taskSuggestion}
+                  onChangeText={setTaskSuggestion}
+                  placeholder="Revise o título da tarefa"
+                  placeholderTextColor="#6C86A3"
+                  style={styles.taskSuggestionInput}
+                  maxLength={160}
+                  accessibilityLabel="Editar título da tarefa sugerida"
+                />
+                <Text style={styles.taskSuggestionNote}>
+                  Só será criada se você confirmar. A tarefa fica neste aparelho; no modo Contextual, título e status podem acompanhar conversas. Nenhum prazo foi presumido.
+                </Text>
+                <Pressable
+                  onPress={createTaskFromSuggestion}
+                  disabled={!taskSuggestion.trim() || isAnalyzing}
+                  style={[styles.createTaskButton, (!taskSuggestion.trim() || isAnalyzing) && styles.disabled]}
+                  accessibilityLabel="Criar tarefa local a partir da captura analisada"
+                >
+                  <MaterialIcons name="add-task" size={17} color={colors.ink} />
+                  <Text style={styles.createTaskButtonText}>Criar tarefa</Text>
+                </Pressable>
+              </View>
             ) : null}
 
             <Pressable onPress={save} disabled={!text.trim() || isAnalyzing} style={[styles.primaryButton, (!text.trim() || isAnalyzing) && styles.disabled]}>
@@ -366,6 +414,13 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: colors.cyan, fontSize: 12, fontWeight: "800" },
   analyzeButton: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingHorizontal: 12, borderRadius: 13, backgroundColor: "#B8FFF4" },
   analyzeButtonText: { color: colors.ink, fontSize: 12, fontWeight: "800" },
+  taskSuggestionCard: { gap: 9, padding: 12, borderRadius: 15, backgroundColor: "rgba(167,131,255,0.08)", borderWidth: 1, borderColor: "rgba(167,131,255,0.3)" },
+  taskSuggestionHeading: { flexDirection: "row", alignItems: "center", gap: 6 },
+  taskSuggestionTitle: { color: "#D7CBFF", fontSize: 12, fontWeight: "800" },
+  taskSuggestionInput: { minHeight: 42, color: colors.text, fontSize: 13, lineHeight: 18, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.line },
+  taskSuggestionNote: { color: colors.muted, fontSize: 10, lineHeight: 15 },
+  createTaskButton: { minHeight: 42, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.violet },
+  createTaskButtonText: { color: colors.ink, fontSize: 12, fontWeight: "800" },
   primaryButton: { minHeight: 44, borderRadius: 13, flexDirection: "row", gap: 7, alignItems: "center", justifyContent: "center", backgroundColor: colors.cyan },
   primaryButtonText: { color: colors.ink, fontSize: 13, fontWeight: "800" },
   disabled: { opacity: 0.4 },

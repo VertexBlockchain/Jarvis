@@ -1,17 +1,19 @@
 import { getApiBaseUrl } from "@/constants/oauth";
-import type { ChatMessage, JarvisTask } from "@/hooks/use-jarvis-store";
-import type { SharedMemory } from "@/lib/jarvis-context";
+import type { ChatMessage } from "@/hooks/use-jarvis-store";
+import type { SharedMemory, SharedTask } from "@/lib/jarvis-context";
 
 type ChatInput = {
   messages: ChatMessage[];
   memories: SharedMemory[];
-  tasks: JarvisTask[];
+  tasks: SharedTask[];
 };
 
 type ChatResponse = {
   text: string;
   fallback: boolean;
 };
+
+type ScreenshotAnalysisResponse = ChatResponse & { taskSuggestion: string | null };
 
 type TranscriptionResponse = {
   text: string;
@@ -44,21 +46,26 @@ export async function askJarvis(input: ChatInput): Promise<ChatResponse> {
   }
 }
 
-export async function analyzeJarvisScreenshot(imageBase64: string, mimeType: string): Promise<ChatResponse> {
+export async function analyzeJarvisScreenshot(imageBase64: string, mimeType: string): Promise<ScreenshotAnalysisResponse> {
   try {
     const response = await fetch(`${getApiBaseUrl()}/api/jarvis/context/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageBase64, mimeType }),
     });
-    const data = (await response.json().catch(() => null)) as { text?: unknown; fallback?: unknown } | null;
+    const data = (await response.json().catch(() => null)) as { text?: unknown; taskSuggestion?: unknown; fallback?: unknown } | null;
     if (typeof data?.text !== "string") {
       throw new Error("jarvis_context_analysis_failed");
     }
-    return { text: data.text, fallback: !response.ok || data.fallback === true };
+    return {
+      text: data.text,
+      taskSuggestion: typeof data.taskSuggestion === "string" ? data.taskSuggestion : null,
+      fallback: !response.ok || data.fallback === true,
+    };
   } catch {
     return {
       text: "Não consegui analisar essa captura agora. Você pode tentar novamente ou guardar uma nota manualmente.",
+      taskSuggestion: null,
       fallback: true,
     };
   }
